@@ -60,11 +60,42 @@ def to_text(data):
         return data.decode(CMDLINE_ENCODING)
     return data
 
+def str_decode(s):
+    return re.split('\r\n|\n',s.decode(GIT_ENCODING))[:-1]
+
+def pipe_read_line(result, pipe):
+    s = pipe.readline()
+    if s:
+        s = str_decode(s)
+        result += s
+        return True
+    return False
+
+def pipe_flush_lines(result, pipe):
+    while pipe_read_line(result, pipe):
+        continue
+
 def popen_lines(cmd, input=None):
     '''Communicate with a Popen object and return a list of lines for stdout and stderr'''
-    stdout, stderr = cmd.communicate(input=input)
-    stdout = re.split('\r\n|\n',stdout.decode(GIT_ENCODING))[:-1]
-    stderr = re.split('\r\n|\n',stderr.decode(GIT_ENCODING))[:-1]
+    stdout = []
+    stderr = []
+
+    # If the user piped the stdin, feed the data
+    if input:
+        cmd.stdin.write(input)
+        # Make sure the subprocess will start going now
+        cmd.stdin.close()
+
+    while True:
+        retval = cmd.poll()
+        if retval != None:
+            break
+        pipe_read_line(stdout, cmd.stdout)
+
+    # Flush all the rest lines we didn't receive yet
+    pipe_flush_lines(stdout, cmd.stdout)
+    pipe_flush_lines(stderr, cmd.stderr)
+
     return stdout, stderr
 
 def _git_check(*args):
