@@ -60,9 +60,9 @@ def to_text(data):
         return data.decode(CMDLINE_ENCODING)
     return data
 
-def popen_lines(cmd, **kwargs):
+def popen_lines(cmd, input=None):
     '''Communicate with a Popen object and return a list of lines for stdout and stderr'''
-    stdout, stderr = cmd.communicate(**kwargs)
+    stdout, stderr = cmd.communicate(input=input)
     stdout = re.split('\r\n|\n',stdout.decode(GIT_ENCODING))[:-1]
     stderr = re.split('\r\n|\n',stderr.decode(GIT_ENCODING))[:-1]
     return stdout, stderr
