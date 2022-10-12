@@ -63,19 +63,23 @@ def to_text(data):
 def str_decode(s):
     return re.split('\r\n|\n',s.decode(GIT_ENCODING))[:-1]
 
-def pipe_read_line(result, pipe):
+def pipe_read_line(result, pipe, do_print):
     s = pipe.readline()
     if s:
         s = str_decode(s)
+        if do_print:
+            for line in s:
+                print(s)
+            sys.stdout.flush()
         result += s
         return True
     return False
 
-def pipe_flush_lines(result, pipe):
-    while pipe_read_line(result, pipe):
+def pipe_flush_lines(result, pipe, do_print):
+    while pipe_read_line(result, pipe, do_print):
         continue
 
-def popen_lines(cmd, input=None):
+def popen_lines(cmd, input=None, do_print=False):
     '''Communicate with a Popen object and return a list of lines for stdout and stderr'''
     stdout = []
     stderr = []
@@ -90,11 +94,11 @@ def popen_lines(cmd, input=None):
         retval = cmd.poll()
         if retval != None:
             break
-        pipe_read_line(stdout, cmd.stdout)
+        pipe_read_line(stdout, cmd.stdout, do_print)
 
     # Flush all the rest lines we didn't receive yet
-    pipe_flush_lines(stdout, cmd.stdout)
-    pipe_flush_lines(stderr, cmd.stderr)
+    pipe_flush_lines(stdout, cmd.stdout, do_print)
+    pipe_flush_lines(stderr, cmd.stderr, do_print)
 
     return stdout, stderr
 
@@ -119,14 +123,14 @@ def _git(*args):
         # ignore git command errors
         return []
 
-def _git_with_stderr(*args):
+def _git_with_stderr(*args, do_print=False):
     '''Run a git command and return a list of lines for stdout and stderr'''
     if VERBOSE:
         print('git ' + ' '.join(args))
     cmd = subprocess.Popen(['git'] + list(args),
                            stdout=subprocess.PIPE,
                            stderr=subprocess.PIPE)
-    stdout, stderr = popen_lines(cmd)
+    stdout, stderr = popen_lines(cmd, do_print=do_print)
     return stdout, stderr, cmd.returncode
 
 def bool_from_str(s):
@@ -291,9 +295,7 @@ def git_send_email(to_list, cc_list, patches, suppress_cc, in_reply_to, thread, 
     if dry_run:
         return _git_with_stderr(*args[1:])[0]
     else:
-        stdout, stderr, ret_code = _git_with_stderr(*args[1:])
-        print('\n'.join(stdout))
-        print('\n'.join(stderr))
+        stdout, stderr, ret_code = _git_with_stderr(*args[1:], do_print=True)
         if ret_code != 0:
             raise GitSendEmailError
 
