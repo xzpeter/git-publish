@@ -269,10 +269,7 @@ def git_send_email(to_list, cc_list, patches, suppress_cc, in_reply_to, thread, 
     if dry_run:
         return _git_with_stderr(*args[1:])[0]
     else:
-        stdout, stderr, ret_code = _git_with_stderr(*args[1:])
-        print('\n'.join(stdout))
-        print('\n'.join(stderr))
-        if ret_code != 0:
+        if subprocess.call(args, encoding=GIT_ENCODING) != 0:
             raise GitSendEmailError
 
 GIT_HOOKDIR = None
