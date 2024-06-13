@@ -63,8 +63,8 @@ def to_text(data):
 def popen_lines(cmd, **kwargs):
     '''Communicate with a Popen object and return a list of lines for stdout and stderr'''
     stdout, stderr = cmd.communicate(**kwargs)
-    stdout = re.split('\r\n|\n',stdout.decode(GIT_ENCODING))[:-1]
-    stderr = re.split('\r\n|\n',stderr.decode(GIT_ENCODING))[:-1]
+    stdout = re.split('\r\n|\n',stdout)[:-1]
+    stderr = re.split('\r\n|\n',stderr)[:-1]
     return stdout, stderr
 
 def _git_check(*args):
@@ -74,7 +74,8 @@ def _git_check(*args):
         print(cmdstr)
     cmd = subprocess.Popen(['git'] + list(args),
                            stdout=subprocess.PIPE,
-                           stderr=subprocess.PIPE)
+                           stderr=subprocess.PIPE,
+                           encoding=GIT_ENCODING)
     stdout, stderr = popen_lines(cmd)
     if cmd.returncode != 0:
         raise GitError('ERROR: %s\n%s' % (cmdstr, '\n'.join(stderr)))
@@ -94,7 +95,8 @@ def _git_with_stderr(*args):
         print('git ' + ' '.join(args))
     cmd = subprocess.Popen(['git'] + list(args),
                            stdout=subprocess.PIPE,
-                           stderr=subprocess.PIPE)
+                           stderr=subprocess.PIPE,
+                           encoding=GIT_ENCODING)
     stdout, stderr = popen_lines(cmd)
     return stdout, stderr, cmd.returncode
 
@@ -307,7 +309,8 @@ def git_config_with_profile(*args):
     cmd = subprocess.Popen(['git', 'config', '--includes', '--file', '/dev/stdin'] + list(args),
                            stdin=subprocess.PIPE,
                            stdout=subprocess.PIPE,
-                           stderr=subprocess.PIPE)
+                           stderr=subprocess.PIPE,
+                           encoding=GIT_ENCODING)
 
     # git-config(1) --includes requires absolute paths
     gitpublish = os.path.abspath(os.path.join(git_get_toplevel_dir(), '.gitpublish'))
@@ -323,7 +326,7 @@ def git_config_with_profile(*args):
     path = %s
 ''' % (gitpublish,  gitconfig)
 
-    stdout, _ = popen_lines(cmd, input=git_config_file.encode(GIT_ENCODING))
+    stdout, _ = popen_lines(cmd, input=git_config_file)
     return stdout
 
 def git_cover_letter_info(base, topic, to, cc, in_reply_to, number):
